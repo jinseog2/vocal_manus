@@ -1,39 +1,61 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
-
+import { AppProvider } from "./contexts/AppContext";
+import HomePage from "./pages/HomePage";
+import PracticePage from "./pages/PracticePage";
+import SongPage from "./pages/SongPage";
+import GamePage from "./pages/GamePage";
+import MyPage from "./pages/MyPage";
+import PitchModePage from "./pages/PitchModePage";
+import WarmupPage from "./pages/WarmupPage";
+import ScalePage from "./pages/ScalePage";
+import CurriculumPage from "./pages/CurriculumPage";
+import SongPracticePage from "./pages/SongPracticePage";
+import SealGamePage from "./pages/SealGamePage";
+import PenguinGamePage from "./pages/PenguinGamePage";
+import AlbumsPage from "./pages/AlbumsPage";
+import BottomNav from "./components/BottomNav";
+import NotFound from "./pages/NotFound";
 
 function Router() {
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
+    <div className="app-container bg-app-gradient">
+      <div className="app-content">
+        <Switch>
+          <Route path="/" component={HomePage} />
+          <Route path="/practice" component={PracticePage} />
+          <Route path="/practice/pitch" component={PitchModePage} />
+          <Route path="/practice/warmup" component={WarmupPage} />
+          <Route path="/practice/scale" component={ScalePage} />
+          <Route path="/practice/curriculum" component={CurriculumPage} />
+          <Route path="/songs" component={SongPage} />
+          <Route path="/songs/:id" component={SongPracticePage} />
+          <Route path="/game" component={GamePage} />
+          <Route path="/game/seal" component={SealGamePage} />
+          <Route path="/game/penguin" component={PenguinGamePage} />
+          <Route path="/mypage" component={MyPage} />
+          <Route path="/mypage/albums" component={AlbumsPage} />
+          <Route component={NotFound} />
+        </Switch>
+      </div>
+      <BottomNav />
+    </div>
   );
 }
-
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+      <ThemeProvider defaultTheme="dark">
+        <AppProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AppProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
