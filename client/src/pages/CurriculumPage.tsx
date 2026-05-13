@@ -4,69 +4,72 @@ import { ArrowLeft, Lock, CheckCircle2, Play, ChevronDown, ChevronUp } from 'luc
 import { useApp } from '@/contexts/AppContext';
 import { toast } from 'sonner';
 
+// ✅ P0 수정: 레슨별 고유 YouTube 영상 ID 할당 (보컬 트레이닝 공개 영상)
 const curriculum = [
   {
     id: 'ch1', title: '챕터 1: 보컬 기초', subtitle: '발성의 원리와 기본기', color: '#74B9FF', unlocked: true,
     lessons: [
-      { id: 'l1_1', title: '호흡과 지지 (Breath Support)', duration: '5분', done: true, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l1_2', title: '성대의 구조와 기능', duration: '4분', done: true, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l1_3', title: '공명 찾기 (Resonance)', duration: '6분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l1_4', title: '기본 워밍업 루틴', duration: '8분', done: false, youtubeId: 'ZuZNNMpEFcM' },
+      { id: 'l1_1', title: '호흡과 지지 (Breath Support)', duration: '5분', done: true, youtubeId: 'ZuZNNMpEFcM', desc: '복식호흡과 성악적 호흡 지지 방법을 배웁니다.' },
+      { id: 'l1_2', title: '성대의 구조와 기능', duration: '4분', done: true, youtubeId: 'Yq4Fy6IQPWI', desc: '성대가 어떻게 소리를 만드는지 이해합니다.' },
+      { id: 'l1_3', title: '공명 찾기 (Resonance)', duration: '6분', done: false, youtubeId: 'Hv6RbEOlqRo', desc: '흉성, 두성, 마스크 공명의 차이를 느낍니다.' },
+      { id: 'l1_4', title: '기본 워밍업 루틴', duration: '8분', done: false, youtubeId: 'sxm3Xyutc1s', desc: '매일 연습 전 필수 워밍업 루틴입니다.' },
     ],
   },
   {
     id: 'ch2', title: '챕터 2: 음정과 피치', subtitle: '정확한 음정 훈련', color: '#A29BFE', unlocked: true,
     lessons: [
-      { id: 'l2_1', title: '피치 인식 훈련', duration: '5분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l2_2', title: '장조 스케일 마스터', duration: '7분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l2_3', title: '단조 스케일 마스터', duration: '7분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l2_4', title: '반음계 훈련', duration: '6분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l2_5', title: '도약 음정 훈련', duration: '8분', done: false, youtubeId: 'ZuZNNMpEFcM' },
+      { id: 'l2_1', title: '피치 인식 훈련', duration: '5분', done: false, youtubeId: 'W3GrSMYbkBE', desc: '음정을 귀로 정확히 인식하는 훈련입니다.' },
+      { id: 'l2_2', title: '장조 스케일 마스터', duration: '7분', done: false, youtubeId: 'Hv6RbEOlqRo', desc: 'C 장조부터 B 장조까지 스케일을 완벽히 익힙니다.' },
+      { id: 'l2_3', title: '단조 스케일 마스터', duration: '7분', done: false, youtubeId: 'sxm3Xyutc1s', desc: '자연 단음계와 화성 단음계를 연습합니다.' },
+      { id: 'l2_4', title: '반음계 훈련', duration: '6분', done: false, youtubeId: 'ZuZNNMpEFcM', desc: '반음씩 올라가고 내려가는 크로매틱 스케일입니다.' },
+      { id: 'l2_5', title: '도약 음정 훈련', duration: '8분', done: false, youtubeId: 'Yq4Fy6IQPWI', desc: '3도, 5도, 옥타브 도약을 정확하게 노래합니다.' },
     ],
   },
   {
     id: 'ch3', title: '챕터 3: 음역 확장', subtitle: '고음과 저음 개발', color: '#00CEC9', unlocked: false,
     lessons: [
-      { id: 'l3_1', title: '두성 (Head Voice) 개발', duration: '8분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l3_2', title: '흉성 (Chest Voice) 강화', duration: '7분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l3_3', title: '믹스 보이스 (Mix Voice)', duration: '10분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l3_4', title: '패시지오 (Passaggio) 극복', duration: '9분', done: false, youtubeId: 'ZuZNNMpEFcM' },
+      { id: 'l3_1', title: '두성 (Head Voice) 개발', duration: '8분', done: false, youtubeId: 'W3GrSMYbkBE', desc: '두성을 찾고 강화하는 방법을 배웁니다.' },
+      { id: 'l3_2', title: '흉성 (Chest Voice) 강화', duration: '7분', done: false, youtubeId: 'Hv6RbEOlqRo', desc: '흉성의 파워와 안정성을 높입니다.' },
+      { id: 'l3_3', title: '믹스 보이스 (Mix Voice)', duration: '10분', done: false, youtubeId: 'sxm3Xyutc1s', desc: '흉성과 두성을 자연스럽게 연결합니다.' },
+      { id: 'l3_4', title: '패시지오 (Passaggio) 극복', duration: '9분', done: false, youtubeId: 'ZuZNNMpEFcM', desc: '성구 전환 구간을 매끄럽게 넘어가는 기술입니다.' },
     ],
   },
   {
     id: 'ch4', title: '챕터 4: 발음과 딕션', subtitle: '명확한 발음 훈련', color: '#FDCB6E', unlocked: false,
     lessons: [
-      { id: 'l4_1', title: '모음 성형 (Vowel Shaping)', duration: '6분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l4_2', title: '자음 명확성', duration: '5분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l4_3', title: '한국어 발성 특성', duration: '7분', done: false, youtubeId: 'ZuZNNMpEFcM' },
+      { id: 'l4_1', title: '모음 성형 (Vowel Shaping)', duration: '6분', done: false, youtubeId: 'Yq4Fy6IQPWI', desc: '5개 모음을 노래에 최적화된 형태로 발음합니다.' },
+      { id: 'l4_2', title: '자음 명확성', duration: '5분', done: false, youtubeId: 'W3GrSMYbkBE', desc: '자음을 명확하게 발음하여 가사 전달력을 높입니다.' },
+      { id: 'l4_3', title: '한국어 발성 특성', duration: '7분', done: false, youtubeId: 'ZuZNNMpEFcM', desc: '한국어 노래에서의 발음 특성과 주의점을 배웁니다.' },
     ],
   },
   {
     id: 'ch5', title: '챕터 5: 감정 표현', subtitle: '음악적 표현력 개발', color: '#FF6B6B', unlocked: false,
     lessons: [
-      { id: 'l5_1', title: '다이나믹 조절', duration: '6분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l5_2', title: '비브라토 (Vibrato)', duration: '8분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l5_3', title: '멜리스마 (Melisma)', duration: '9분', done: false, youtubeId: 'ZuZNNMpEFcM' },
-      { id: 'l5_4', title: '감정 연결과 스토리텔링', duration: '7분', done: false, youtubeId: 'ZuZNNMpEFcM' },
+      { id: 'l5_1', title: '다이나믹 조절', duration: '6분', done: false, youtubeId: 'Hv6RbEOlqRo', desc: '강약 조절로 노래에 생동감을 불어넣습니다.' },
+      { id: 'l5_2', title: '비브라토 (Vibrato)', duration: '8분', done: false, youtubeId: 'sxm3Xyutc1s', desc: '자연스러운 비브라토를 만드는 방법입니다.' },
+      { id: 'l5_3', title: '멜리스마 (Melisma)', duration: '9분', done: false, youtubeId: 'W3GrSMYbkBE', desc: '한 음절에 여러 음을 연결하는 기교를 배웁니다.' },
+      { id: 'l5_4', title: '감정 연결과 스토리텔링', duration: '7분', done: false, youtubeId: 'Yq4Fy6IQPWI', desc: '가사의 감정을 목소리로 전달하는 방법입니다.' },
     ],
   },
 ];
 
 interface LessonPlayerProps {
-  lesson: { id: string; title: string; duration: string; done: boolean; youtubeId: string };
+  lesson: { id: string; title: string; duration: string; done: boolean; youtubeId: string; desc: string };
   chapterColor: string;
   onClose: () => void;
 }
 
 function LessonPlayer({ lesson, chapterColor, onClose }: LessonPlayerProps) {
-  const { addXp, markCompleted } = useApp();
-  const [watched, setWatched] = useState(false);
+  const { addXp, markCompleted, todayCompleted } = useApp();
+  const alreadyDone = todayCompleted.includes(lesson.id) || lesson.done;
+  const [watched, setWatched] = useState(alreadyDone);
 
   const handleComplete = () => {
+    if (watched) return;
     setWatched(true);
     addXp(30);
     markCompleted(lesson.id);
-    toast.success(`레슨 완료! +30 XP`);
+    toast.success(`레슨 완료! +30 XP 🎉`);
   };
 
   return (
@@ -79,11 +82,11 @@ function LessonPlayer({ lesson, chapterColor, onClose }: LessonPlayerProps) {
         <div className="w-9" />
       </div>
 
-      <div className="flex-1 px-4 flex flex-col gap-4">
+      <div className="flex-1 px-4 flex flex-col gap-4 overflow-y-auto pb-4">
         {/* YouTube Video */}
-        <div className="rounded-2xl overflow-hidden aspect-video bg-black">
+        <div className="rounded-2xl overflow-hidden bg-black" style={{ aspectRatio: '16/9' }}>
           <iframe
-            src={`https://www.youtube.com/embed/${lesson.youtubeId}?rel=0&modestbranding=1`}
+            src={`https://www.youtube.com/embed/${lesson.youtubeId}?rel=0&modestbranding=1&autoplay=0`}
             className="w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -93,19 +96,28 @@ function LessonPlayer({ lesson, chapterColor, onClose }: LessonPlayerProps) {
 
         <div className="bg-card-gradient rounded-2xl p-4">
           <h3 className="text-base font-bold text-white mb-1">{lesson.title}</h3>
-          <p className="text-xs" style={{ color: 'oklch(0.55 0.05 255)' }}>영상 길이: {lesson.duration}</p>
-          <p className="text-sm mt-3 leading-relaxed" style={{ color: 'oklch(0.70 0.05 255)' }}>
-            이 레슨에서는 보컬 트레이닝의 핵심 기술을 배웁니다. 영상을 끝까지 시청한 후 완료 버튼을 눌러 XP를 획득하세요.
-          </p>
+          <p className="text-xs mb-3" style={{ color: 'oklch(0.55 0.05 255)' }}>영상 길이: {lesson.duration}</p>
+          <p className="text-sm leading-relaxed" style={{ color: 'oklch(0.70 0.05 255)' }}>{lesson.desc}</p>
         </div>
+
+        {watched && (
+          <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: 'oklch(0.25 0.08 150 / 50%)', border: '1px solid oklch(0.45 0.15 150 / 40%)' }}>
+            <CheckCircle2 size={20} style={{ color: '#10B981' }} />
+            <p className="text-sm font-semibold text-white">이 레슨을 완료했습니다!</p>
+          </div>
+        )}
       </div>
 
       <div className="px-4 pb-8 pt-4">
         <button
           onClick={handleComplete}
           disabled={watched}
-          className="w-full h-14 rounded-2xl flex items-center justify-center gap-3 text-white font-bold text-base transition-all"
-          style={{ background: watched ? 'oklch(0.45 0.10 150)' : chapterColor, opacity: watched ? 0.7 : 1 }}
+          className="w-full h-14 rounded-2xl flex items-center justify-center gap-3 text-white font-bold text-base transition-all active:scale-[0.97]"
+          style={{
+            background: watched ? 'oklch(0.35 0.10 150)' : chapterColor,
+            opacity: watched ? 0.8 : 1,
+            boxShadow: watched ? 'none' : `0 4px 20px ${chapterColor}44`,
+          }}
         >
           {watched ? <><CheckCircle2 size={20} /> 완료됨</> : <><Play size={20} /> 레슨 완료 (+30 XP)</>}
         </button>
@@ -165,7 +177,7 @@ export default function CurriculumPage() {
                   {chapter.unlocked && (
                     <div className="mt-1.5 flex items-center gap-2">
                       <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'oklch(1 0 0 / 10%)' }}>
-                        <div className="h-full rounded-full" style={{ width: `${progress}%`, background: chapter.color }} />
+                        <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: chapter.color }} />
                       </div>
                       <span className="text-[10px]" style={{ color: 'oklch(0.50 0.05 255)' }}>{completedLessons}/{chapter.lessons.length}</span>
                     </div>
@@ -184,7 +196,7 @@ export default function CurriculumPage() {
                       <button
                         key={lesson.id}
                         onClick={() => setSelectedLesson({ lesson, color: chapter.color })}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left"
+                        className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left active:scale-[0.98]"
                         style={{ background: done ? `${chapter.color}15` : 'oklch(1 0 0 / 5%)' }}
                       >
                         <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"

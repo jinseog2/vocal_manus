@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { ArrowLeft, Play, Pause, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Play, Pause, ChevronRight, CheckCircle2, RotateCcw } from 'lucide-react';
 import { useAudioGuide } from '@/hooks/useAudioGuide';
 import { usePitchDetection } from '@/hooks/usePitchDetection';
 import { useApp } from '@/contexts/AppContext';
@@ -11,7 +11,7 @@ const warmupExercises = [
     id: 'lip_trill', title: '립 트릴 (Lip Trill)', subtitle: '입술을 떨며 "브르르" 소리 내기',
     duration: 60, icon: '💋', color: '#FF6B6B',
     description: '입술을 가볍게 붙이고 공기를 내보내며 입술을 진동시킵니다. 음정을 올리고 내리며 연습합니다.',
-    guideNotes: [60, 62, 64, 65, 67, 65, 64, 62, 60], // C4 scale
+    guideNotes: [60, 62, 64, 65, 67, 65, 64, 62, 60],
   },
   {
     id: 'humming', title: '허밍 (Humming)', subtitle: '"음~" 소리로 공명 찾기',
@@ -66,41 +66,95 @@ function ExercisePlayer({ exercise, onClose }: ExercisePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeLeft, setTimeLeft] = useState(exercise.duration);
   const [guideActive, setGuideActive] = useState(false);
-  const timerRef = useState<ReturnType<typeof setInterval> | null>(null);
+  const [completed, setCompleted] = useState(false);
+  // ✅ P0 수정: useState → useRef로 교체 (리렌더링 없이 타이머 참조 유지)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const guideIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { playScale, playReferenceNote } = useAudioGuide();
   const { isListening, currentPitch, volume, startListening, stopListening } = usePitchDetection();
   const { addXp, markCompleted } = useApp();
 
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (guideIntervalRef.current) clearInterval(guideIntervalRef.current);
+    };
+  }, []);
+
+  // ✅ P2 수정: 가이드 음 반복 재생 (guideNotes 길이 * 400ms 주기로 반복)
+  const startGuideLoop = useCallback(() => {
+    const guideInterval = exercise.guideNotes.length * 400 + 600;
+    playScale(exercise.guideNotes[0], true, 0.35, 0.05);
+    setGuideActive(true);
+    setTimeout(() => setGuideActive(false), exercise.guideNotes.length * 400 + 200);
+
+    guideIntervalRef.current = setInterval(() => {
+      playScale(exercise.guideNotes[0], true, 0.35, 0.05);
+      setGuideActive(true);
+      setTimeout(() => setGuideActive(false), exercise.guideNotes.length * 400 + 200);
+    }, guideInterval);
+  }, [exercise, playScale]);
+
+  const stopGuideLoop = useCallback(() => {
+    if (guideIntervalRef.current) {
+      clearInterval(guideIntervalRef.current);
+      guideIntervalRef.current = null;
+    }
+    setGuideActive(false);
+  }, []);
+
   const handlePlay = useCallback(async () => {
     if (isPlaying) {
+      // 일시정지
       setIsPlaying(false);
       stopListening();
-      if (timerRef[0]) clearInterval(timerRef[0]);
+      stopGuideLoop();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     } else {
+      // 시작
       setIsPlaying(true);
       await startListening();
-      // Play guide audio
-      setGuideActive(true);
-      playScale(exercise.guideNotes[0], true, 0.35, 0.05);
-      setTimeout(() => setGuideActive(false), exercise.guideNotes.length * 400 + 500);
+      startGuideLoop();
 
-      const interval = setInterval(() => {
+      // ✅ P0 수정: timerRef.current로 올바르게 참조
+      timerRef.current = setInterval(() => {
         setTimeLeft(t => {
           if (t <= 1) {
-            clearInterval(interval);
-            setIsPlaying(false);
+            // 완료 처리
+            if (timerRef.current) clearInterval(timerRef.current);
+            timerRef.current = null;
             stopListening();
+            stopGuideLoop();
+            setIsPlaying(false);
+            setCompleted(true);
             addXp(15);
             markCompleted(exercise.id);
-            toast.success(`${exercise.title} 완료! +15 XP`);
-            return exercise.duration;
+            toast.success(`${exercise.title} 완료! +15 XP 🎉`);
+            // ✅ P0 수정: 완료 후 2초 뒤 자동으로 화면 닫기
+            setTimeout(() => onClose(), 2000);
+            return 0;
           }
           return t - 1;
         });
       }, 1000);
-      timerRef[1](interval);
     }
-  }, [isPlaying, exercise, playScale, startListening, stopListening, addXp, markCompleted, timerRef]);
+  }, [isPlaying, exercise, startGuideLoop, stopGuideLoop, startListening, stopListening, addXp, markCompleted, onClose]);
+
+  const handleReset = useCallback(() => {
+    setIsPlaying(false);
+    setTimeLeft(exercise.duration);
+    setCompleted(false);
+    stopListening();
+    stopGuideLoop();
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, [exercise.duration, stopListening, stopGuideLoop]);
 
   const progress = ((exercise.duration - timeLeft) / exercise.duration) * 100;
   const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -108,14 +162,16 @@ function ExercisePlayer({ exercise, onClose }: ExercisePlayerProps) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'oklch(0.10 0.03 255)', maxWidth: 390, margin: '0 auto' }}>
       <div className="flex items-center justify-between px-4 pt-12 pb-4">
-        <button onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'oklch(1 0 0 / 10%)' }}>
+        <button onClick={() => { handleReset(); onClose(); }} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'oklch(1 0 0 / 10%)' }}>
           <ArrowLeft size={18} className="text-white" />
         </button>
         <h2 className="text-base font-bold text-white">{exercise.title}</h2>
-        <div className="w-9" />
+        <button onClick={handleReset} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'oklch(1 0 0 / 10%)' }}>
+          <RotateCcw size={16} className="text-white/60" />
+        </button>
       </div>
 
-      <div className="flex-1 px-4 flex flex-col gap-4">
+      <div className="flex-1 px-4 flex flex-col gap-4 overflow-y-auto">
         {/* Exercise Icon & Info */}
         <div className="bg-card-gradient rounded-3xl p-6 flex flex-col items-center gap-3 text-center">
           <span className="text-6xl">{exercise.icon}</span>
@@ -127,17 +183,27 @@ function ExercisePlayer({ exercise, onClose }: ExercisePlayerProps) {
 
         {/* Timer & Progress */}
         <div className="bg-card-gradient rounded-3xl p-5 flex flex-col items-center gap-3">
-          <div className="text-4xl font-black text-white" style={{ fontFamily: 'Nunito, sans-serif' }}>
-            {formatTime(timeLeft)}
-          </div>
-          <div className="w-full h-2 rounded-full" style={{ background: 'oklch(1 0 0 / 10%)' }}>
-            <div className="h-full progress-bar transition-all duration-1000" style={{ width: `${progress}%` }} />
-          </div>
-          {guideActive && (
-            <div className="flex items-center gap-2 text-xs" style={{ color: 'oklch(0.65 0.18 280)' }}>
-              <span className="animate-pulse">♪</span>
-              <span>가이드 음 재생 중...</span>
+          {completed ? (
+            <div className="flex flex-col items-center gap-2">
+              <CheckCircle2 size={40} style={{ color: '#00CEC9' }} />
+              <p className="text-lg font-black text-white">완료! +15 XP</p>
+              <p className="text-xs" style={{ color: 'oklch(0.55 0.05 255)' }}>잠시 후 자동으로 닫힙니다...</p>
             </div>
+          ) : (
+            <>
+              <div className="text-4xl font-black text-white" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                {formatTime(timeLeft)}
+              </div>
+              <div className="w-full h-2 rounded-full" style={{ background: 'oklch(1 0 0 / 10%)' }}>
+                <div className="h-full progress-bar transition-all duration-1000" style={{ width: `${progress}%` }} />
+              </div>
+              {guideActive && (
+                <div className="flex items-center gap-2 text-xs" style={{ color: 'oklch(0.65 0.18 280)' }}>
+                  <span className="animate-pulse">♪</span>
+                  <span>가이드 음 재생 중...</span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -160,7 +226,7 @@ function ExercisePlayer({ exercise, onClose }: ExercisePlayerProps) {
 
         {/* Guide Notes */}
         <div className="bg-card-gradient rounded-3xl p-4">
-          <p className="text-xs font-bold text-white mb-2">가이드 음 시퀀스</p>
+          <p className="text-xs font-bold text-white mb-2">가이드 음 시퀀스 (탭하여 미리 듣기)</p>
           <div className="flex gap-1.5 flex-wrap">
             {exercise.guideNotes.map((midi, i) => {
               const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -168,7 +234,7 @@ function ExercisePlayer({ exercise, onClose }: ExercisePlayerProps) {
               const oct = Math.floor(midi / 12) - 1;
               return (
                 <button key={i} onClick={() => playReferenceNote(midi)}
-                  className="px-2 py-1 rounded-lg text-xs font-bold transition-all"
+                  className="px-2 py-1 rounded-lg text-xs font-bold transition-all active:scale-95"
                   style={{ background: `${exercise.color}22`, color: exercise.color, border: `1px solid ${exercise.color}44` }}>
                   {note}{oct}
                 </button>
@@ -182,10 +248,15 @@ function ExercisePlayer({ exercise, onClose }: ExercisePlayerProps) {
       <div className="px-4 pb-8 pt-4">
         <button
           onClick={handlePlay}
-          className="w-full h-14 rounded-2xl flex items-center justify-center gap-3 text-white font-bold text-base transition-all"
-          style={{ background: isPlaying ? 'oklch(0.50 0.20 25)' : `${exercise.color}`, boxShadow: `0 4px 20px ${exercise.color}44` }}
+          disabled={completed}
+          className="w-full h-14 rounded-2xl flex items-center justify-center gap-3 text-white font-bold text-base transition-all active:scale-[0.97]"
+          style={{
+            background: completed ? 'oklch(0.45 0.10 150)' : isPlaying ? 'oklch(0.50 0.20 25)' : exercise.color,
+            boxShadow: completed ? 'none' : `0 4px 20px ${exercise.color}44`,
+            opacity: completed ? 0.7 : 1,
+          }}
         >
-          {isPlaying ? <><Pause size={20} /> 일시정지</> : <><Play size={20} /> 연습 시작</>}
+          {completed ? <><CheckCircle2 size={20} /> 완료됨</> : isPlaying ? <><Pause size={20} /> 일시정지</> : <><Play size={20} /> 연습 시작</>}
         </button>
       </div>
     </div>

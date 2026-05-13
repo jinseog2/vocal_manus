@@ -116,8 +116,8 @@ export default function MyPage() {
                 <div
                   className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all"
                   style={{
-                    background: badge.earned ? `${badge.color.replace('bg-', '')}22` : 'oklch(1 0 0 / 5%)',
-                    border: badge.earned ? `1.5px solid oklch(0.60 0.18 280 / 40%)` : '1.5px solid oklch(1 0 0 / 8%)',
+                    background: badge.earned ? `${badge.color}22` : 'oklch(1 0 0 / 5%)',
+                    border: badge.earned ? `1.5px solid ${badge.color}66` : '1.5px solid oklch(1 0 0 / 8%)',
                     opacity: badge.earned ? 1 : 0.35,
                     filter: badge.earned ? 'none' : 'grayscale(1)',
                   }}

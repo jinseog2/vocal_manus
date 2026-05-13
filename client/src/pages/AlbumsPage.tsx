@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useLocation } from 'wouter';
-import { ArrowLeft, Trash2, Play, Pause, Video, Mic, Tag, GitCompare } from 'lucide-react';
+import { ArrowLeft, Trash2, Play, Pause, Video, Mic, Tag, GitCompare, Download } from 'lucide-react';
 import { useApp, Recording } from '@/contexts/AppContext';
 import { toast } from 'sonner';
 
@@ -11,27 +11,49 @@ export default function AlbumsPage() {
   const [compareMode, setCompareMode] = useState(false);
   const [compareA, setCompareA] = useState<Recording | null>(null);
   const [compareB, setCompareB] = useState<Recording | null>(null);
+  const [expandedVideo, setExpandedVideo] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  // ✅ P0 수정: base64 data URL로 직접 재생 (Blob URL 만료 문제 해결)
   const handlePlay = (rec: Recording) => {
     if (playing === rec.id) {
       audioRef.current?.pause();
-      videoRef.current?.pause();
       setPlaying(null);
       return;
     }
-    setPlaying(rec.id);
-    if (rec.type === 'audio' && rec.audioUrl) {
-      if (!audioRef.current) audioRef.current = new Audio();
-      audioRef.current.src = rec.audioUrl;
-      audioRef.current.play();
-      audioRef.current.onended = () => setPlaying(null);
+
+    if (rec.type === 'video') {
+      setExpandedVideo(expandedVideo === rec.id ? null : rec.id);
+      return;
     }
+
+    // 오디오 재생: audioData(base64) 사용
+    const src = rec.audioData;
+    if (!src) {
+      toast.error('재생할 수 없는 파일입니다');
+      return;
+    }
+    setPlaying(rec.id);
+    if (!audioRef.current) audioRef.current = new Audio();
+    audioRef.current.src = src;
+    audioRef.current.play().catch(() => toast.error('재생 중 오류가 발생했습니다'));
+    audioRef.current.onended = () => setPlaying(null);
+  };
+
+  // ✅ P0 수정: base64 데이터로 다운로드
+  const handleDownload = (rec: Recording) => {
+    const data = rec.type === 'video' ? rec.videoData : rec.audioData;
+    if (!data) { toast.error('다운로드할 파일이 없습니다'); return; }
+    const a = document.createElement('a');
+    a.href = data;
+    a.download = `${rec.title}_${rec.date.slice(0, 10)}.${rec.type === 'video' ? 'webm' : 'webm'}`;
+    a.click();
+    toast.success('다운로드 시작!');
   };
 
   const handleDelete = (id: string) => {
     removeRecording(id);
+    if (expandedVideo === id) setExpandedVideo(null);
     toast.success('삭제되었습니다');
   };
 
@@ -112,12 +134,15 @@ export default function AlbumsPage() {
             <div
               key={rec.id}
               className="bg-card-gradient rounded-2xl overflow-hidden"
-              style={{ border: compareMode && (compareA?.id === rec.id || compareB?.id === rec.id) ? '1.5px solid oklch(0.60 0.22 280)' : '1px solid transparent' }}
+              style={{ border: compareMode && (compareA?.id === rec.id || compareB?.id === rec.id) ? '1.5px solid oklch(0.60 0.22 280)' : '1px solid oklch(1 0 0 / 8%)' }}
             >
-              {/* Video thumbnail or audio icon */}
               <div className="flex items-start gap-3 p-4">
-                <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 relative"
-                  style={{ background: 'oklch(1 0 0 / 8%)' }}>
+                {/* Thumbnail */}
+                <button
+                  onClick={() => handlePlay(rec)}
+                  className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 relative"
+                  style={{ background: 'oklch(1 0 0 / 8%)' }}
+                >
                   {rec.thumbnail ? (
                     <img src={rec.thumbnail} alt={rec.title} className="w-full h-full object-cover" />
                   ) : (
@@ -125,17 +150,17 @@ export default function AlbumsPage() {
                       {rec.type === 'video' ? <Video size={20} style={{ color: 'oklch(0.55 0.05 255)' }} /> : <Mic size={20} style={{ color: 'oklch(0.55 0.05 255)' }} />}
                     </div>
                   )}
-                  <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'oklch(0 0 0 / 30%)' }}>
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'oklch(0.60 0.22 280 / 80%)' }}>
-                      {rec.type === 'video' ? <Video size={10} className="text-white" /> : <Mic size={10} className="text-white" />}
+                  <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'oklch(0 0 0 / 35%)' }}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'oklch(0.60 0.22 280 / 90%)' }}>
+                      {playing === rec.id ? <Pause size={12} className="text-white" /> : <Play size={12} className="text-white" style={{ marginLeft: 1 }} />}
                     </div>
                   </div>
-                </div>
+                </button>
 
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-white truncate">{rec.title}</p>
                   <p className="text-xs mt-0.5 truncate" style={{ color: 'oklch(0.55 0.05 255)' }}>{rec.artist}</p>
-                  <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full"
                       style={{ background: rec.type === 'video' ? 'oklch(0.55 0.18 195 / 20%)' : 'oklch(0.60 0.22 280 / 20%)', color: rec.type === 'video' ? 'oklch(0.70 0.15 195)' : 'oklch(0.75 0.15 280)' }}>
                       {rec.type === 'video' ? '영상' : '오디오'}
@@ -153,10 +178,10 @@ export default function AlbumsPage() {
                       <Tag size={14} className="text-white" />
                     </button>
                   ) : (
-                    <button onClick={() => handlePlay(rec)}
+                    <button onClick={() => handleDownload(rec)}
                       className="w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{ background: 'oklch(0.60 0.22 280 / 20%)' }}>
-                      {playing === rec.id ? <Pause size={14} style={{ color: 'oklch(0.75 0.18 280)' }} /> : <Play size={14} style={{ color: 'oklch(0.75 0.18 280)' }} />}
+                      style={{ background: 'oklch(0.55 0.18 150 / 20%)' }}>
+                      <Download size={14} style={{ color: 'oklch(0.70 0.15 150)' }} />
                     </button>
                   )}
                   <button onClick={() => handleDelete(rec.id)}
@@ -167,17 +192,16 @@ export default function AlbumsPage() {
                 </div>
               </div>
 
-              {/* Video player inline */}
-              {rec.type === 'video' && rec.videoUrl && playing === rec.id && (
+              {/* ✅ P0 수정: 비디오 인라인 재생 - videoData(base64) 사용 */}
+              {rec.type === 'video' && rec.videoData && expandedVideo === rec.id && (
                 <div className="px-4 pb-4">
                   <video
-                    ref={videoRef}
-                    src={rec.videoUrl}
+                    src={rec.videoData}
                     controls
                     autoPlay
                     className="w-full rounded-xl"
-                    style={{ maxHeight: 200 }}
-                    onEnded={() => setPlaying(null)}
+                    style={{ maxHeight: 220 }}
+                    onEnded={() => setExpandedVideo(null)}
                   />
                 </div>
               )}

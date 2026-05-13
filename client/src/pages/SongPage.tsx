@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { Search, ChevronRight, Heart, Play } from 'lucide-react';
+import { useApp } from '@/contexts/AppContext';
 
 const songList = [
   { id: '1', title: '봄날', artist: 'BTS', youtubeId: 'xEeFrLSkMm8', key: 'F#m', bpm: 76, difficulty: '중급', genre: '발라드' },
@@ -20,16 +21,15 @@ const difficultyColor: Record<string, string> = { '초급': '#00CEC9', '중급':
 export default function SongPage() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState('');
-  const [favorites, setFavorites] = useState<string[]>([]);
   const [filter, setFilter] = useState<'전체' | '발라드' | '팝' | 'R&B'>('전체');
+  // ✅ P1 수정: 즐겨찾기를 Context에서 관리 (세션 유지)
+  const { favorites, toggleFavorite } = useApp();
 
   const filtered = songList.filter(s => {
     const matchSearch = s.title.includes(search) || s.artist.includes(search);
     const matchFilter = filter === '전체' || s.genre === filter;
     return matchSearch && matchFilter;
   });
-
-  const toggleFav = (id: string) => setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
 
   return (
     <div className="min-h-full pb-4">
@@ -93,7 +93,7 @@ export default function SongPage() {
               </div>
 
               <div className="flex flex-col items-center gap-2">
-                <button onClick={() => toggleFav(song.id)}>
+                <button onClick={() => toggleFavorite(song.id)}>
                   <Heart size={16} fill={favorites.includes(song.id) ? '#FF6B6B' : 'none'} style={{ color: favorites.includes(song.id) ? '#FF6B6B' : 'oklch(0.45 0.05 255)' }} />
                 </button>
                 <button onClick={() => navigate(`/songs/${song.id}`)}>

@@ -1,11 +1,14 @@
 import { useLocation } from 'wouter';
 import { ArrowLeft, Star, Trophy, Zap } from 'lucide-react';
+import { useApp } from '@/contexts/AppContext';
 
 const SEAL_IMG = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663032506040/2qUj9V5qzb6JP2x9TbX7ue/seal_mascot-MkdCY6MumAwwjKixF4c4mN.webp';
 const PENGUIN_IMG = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663032506040/2qUj9V5qzb6JP2x9TbX7ue/penguin_mascot-XrXJPBmQbMhzwrxGDPEJCE.webp';
 
 export default function GamePage() {
   const [, navigate] = useLocation();
+  // ✅ P1 수정: Context에서 실시간 최고 기록 읽기
+  const { gameHighScores } = useApp();
 
   return (
     <div className="min-h-full pb-4">
@@ -85,7 +88,7 @@ export default function GamePage() {
           </div>
         </button>
 
-        {/* High Score */}
+        {/* ✅ P1 수정: 최고 기록을 Context에서 실시간으로 읽어옴 */}
         <div className="bg-card-gradient rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <Trophy size={16} style={{ color: '#FDCB6E' }} />
@@ -94,12 +97,12 @@ export default function GamePage() {
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl p-3 text-center" style={{ background: 'oklch(1 0 0 / 5%)' }}>
               <p className="text-xs mb-1" style={{ color: 'oklch(0.55 0.05 255)' }}>물개 게임</p>
-              <p className="text-xl font-black text-white">0</p>
+              <p className="text-xl font-black text-white">{gameHighScores.seal.toLocaleString()}</p>
               <p className="text-[10px]" style={{ color: 'oklch(0.45 0.05 255)' }}>점</p>
             </div>
             <div className="rounded-xl p-3 text-center" style={{ background: 'oklch(1 0 0 / 5%)' }}>
               <p className="text-xs mb-1" style={{ color: 'oklch(0.55 0.05 255)' }}>펭귄 게임</p>
-              <p className="text-xl font-black text-white">0</p>
+              <p className="text-xl font-black text-white">{gameHighScores.penguin.toLocaleString()}</p>
               <p className="text-[10px]" style={{ color: 'oklch(0.45 0.05 255)' }}>점</p>
             </div>
           </div>

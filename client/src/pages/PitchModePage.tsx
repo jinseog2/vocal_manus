@@ -168,9 +168,13 @@ export default function PitchModePage() {
           mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
           mr.onstop = () => {
             const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
-            addRecording({ id: Date.now().toString(), title: '피치 연습 영상', artist: '나', date: new Date().toISOString(), duration: elapsed, videoBlob: blob, videoUrl: url, type: 'video' });
-            toast.success('영상이 My Albums에 저장되었습니다!');
+            // ✅ P0 수정: base64로 변환하여 영구 저장
+            const reader = new FileReader();
+            reader.onload = () => {
+              addRecording({ id: Date.now().toString(), title: '피치 연습 영상', artist: '나', date: new Date().toISOString(), duration: elapsed, videoData: reader.result as string, mimeType: 'video/webm', type: 'video' });
+              toast.success('영상이 My Albums에 저장되었습니다!');
+            };
+            reader.readAsDataURL(blob);
           };
           mr.start();
           mediaRecorderRef.current = mr;

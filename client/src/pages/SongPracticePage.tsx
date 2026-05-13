@@ -28,7 +28,6 @@ export default function SongPracticePage() {
   const [mode, setMode] = useState<PracticeMode>('pitch');
   const [isRecording, setIsRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [isFav, setIsFav] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -37,7 +36,8 @@ export default function SongPracticePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const { isListening, currentPitch, pitchHistory, volume, startListening, stopListening } = usePitchDetection();
-  const { addRecording, addXp, earnBadge } = useApp();
+  const { addRecording, addXp, earnBadge, toggleFavorite, favorites } = useApp();
+  const isFav = favorites.includes(params.id || '1');
 
   // Draw pitch graph
   useEffect(() => {
@@ -89,16 +89,22 @@ export default function SongPracticePage() {
         const mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
         chunksRef.current = [];
         mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-        mr.onstop = () => {
+        mr.onstop = async () => {
           const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-          const url = URL.createObjectURL(blob);
-          addRecording({
-            id: Date.now().toString(), title: song.title, artist: song.artist,
-            date: new Date().toISOString(), duration: elapsed, videoBlob: blob, videoUrl: url,
-            type: 'video', thumbnail: `https://img.youtube.com/vi/${song.youtubeId}/mqdefault.jpg`,
-          });
-          earnBadge('recorder');
-          toast.success('영상이 My Albums에 저장되었습니다! 🎬');
+          // ✅ P0 수정: base64로 변환하여 영구 저장
+          const reader = new FileReader();
+          reader.onload = () => {
+            addRecording({
+              id: Date.now().toString(), title: song.title, artist: song.artist,
+              date: new Date().toISOString(), duration: elapsed,
+              videoData: reader.result as string,
+              mimeType: 'video/webm',
+              type: 'video', thumbnail: `https://img.youtube.com/vi/${song.youtubeId}/mqdefault.jpg`,
+            });
+            earnBadge('recorder');
+            toast.success('영상이 My Albums에 저장되었습니다! 🎬');
+          };
+          reader.readAsDataURL(blob);
         };
         mr.start();
         mediaRecorderRef.current = mr;
@@ -111,14 +117,20 @@ export default function SongPracticePage() {
         mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
         mr.onstop = () => {
           const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-          const url = URL.createObjectURL(blob);
-          addRecording({
-            id: Date.now().toString(), title: song.title, artist: song.artist,
-            date: new Date().toISOString(), duration: elapsed, audioBlob: blob, audioUrl: url,
-            type: 'audio', thumbnail: `https://img.youtube.com/vi/${song.youtubeId}/mqdefault.jpg`,
-          });
-          earnBadge('recorder');
-          toast.success('오디오가 My Albums에 저장되었습니다! 🎙️');
+          // ✅ P0 수정: base64로 변환하여 영구 저장
+          const reader = new FileReader();
+          reader.onload = () => {
+            addRecording({
+              id: Date.now().toString(), title: song.title, artist: song.artist,
+              date: new Date().toISOString(), duration: elapsed,
+              audioData: reader.result as string,
+              mimeType: 'audio/webm',
+              type: 'audio', thumbnail: `https://img.youtube.com/vi/${song.youtubeId}/mqdefault.jpg`,
+            });
+            earnBadge('recorder');
+            toast.success('오디오가 My Albums에 저장되었습니다! 🎙️');
+          };
+          reader.readAsDataURL(blob);
         };
         mr.start();
         mediaRecorderRef.current = mr;
@@ -152,7 +164,7 @@ export default function SongPracticePage() {
           <p className="text-sm font-bold text-white">{song.title}</p>
           <p className="text-xs" style={{ color: 'oklch(0.55 0.05 255)' }}>{song.artist}</p>
         </div>
-        <button onClick={() => setIsFav(f => !f)}>
+        <button onClick={() => toggleFavorite(params.id || '1')}>
           <Heart size={20} fill={isFav ? '#FF6B6B' : 'none'} style={{ color: isFav ? '#FF6B6B' : 'oklch(0.45 0.05 255)' }} />
         </button>
       </div>

@@ -26,13 +26,15 @@ export default function SealGamePage() {
   const lastNoteRef = useRef<number>(0);
   const sealImgRef = useRef<HTMLImageElement | null>(null);
   const [score, setScore] = useState(0);
-  const [highScore, setHighScore] = useState(() => parseInt(localStorage.getItem('seal_highscore') || '0'));
   const [gameOver, setGameOver] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const { isListening, currentPitch, volume, startListening, stopListening } = usePitchDetection();
   const { playSuccess, playClick } = useAudioGuide();
-  const { addXp, earnBadge } = useApp();
+  const { addXp, earnBadge, updateGameHighScore, gameHighScores } = useApp();
+  const [countdown, setCountdown] = useState<number | null>(null);
+  // ✅ P1 수정: Context에서 최고 기록 읽기 (gameHighScores 선언 이후)
+  const highScore = gameHighScores.seal;
 
   // Preload seal image
   useEffect(() => {
@@ -180,14 +182,26 @@ export default function SealGamePage() {
     rafRef.current = requestAnimationFrame(gameLoop);
   }, [currentPitch, volume, spawnNote, playClick]);
 
+  // ✅ P2 수정: 카운트다운 추가
   const startGame = useCallback(async () => {
-    gameRef.current = { sealY: CANVAS_H / 2, score: 0, notes: [], gameOver: false };
-    lastNoteRef.current = Date.now();
-    setScore(0);
     setGameOver(false);
-    setIsPlaying(true);
+    setScore(0);
     await startListening();
-    rafRef.current = requestAnimationFrame(gameLoop);
+    setCountdown(3);
+    let count = 3;
+    const cdInterval = setInterval(() => {
+      count -= 1;
+      if (count <= 0) {
+        clearInterval(cdInterval);
+        setCountdown(null);
+        gameRef.current = { sealY: CANVAS_H / 2, score: 0, notes: [], gameOver: false };
+        lastNoteRef.current = Date.now();
+        setIsPlaying(true);
+        rafRef.current = requestAnimationFrame(gameLoop);
+      } else {
+        setCountdown(count);
+      }
+    }, 1000);
   }, [startListening, gameLoop]);
 
   const stopGame = useCallback(() => {
@@ -195,9 +209,9 @@ export default function SealGamePage() {
     stopListening();
     setIsPlaying(false);
     const finalScore = gameRef.current.score;
+    // ✅ P1 수정: Context를 통해 최고 기록 업데이트
     if (finalScore > highScore) {
-      setHighScore(finalScore);
-      localStorage.setItem('seal_highscore', String(finalScore));
+      updateGameHighScore('seal', finalScore);
       toast.success(`새 최고 기록! ${finalScore}점 🎉`);
     }
     if (finalScore >= 50) { addXp(20); earnBadge('game_player'); }
@@ -249,13 +263,32 @@ export default function SealGamePage() {
             </div>
           )}
 
+          {/* ✅ P2 수정: 카운트다운 오버레이 */}
+          {countdown !== null && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: 'oklch(0.10 0.03 255 / 70%)' }}>
+              <p className="text-8xl font-black text-white" style={{ fontFamily: 'Nunito, sans-serif', textShadow: '0 0 30px oklch(0.60 0.22 280)' }}>{countdown}</p>
+            </div>
+          )}
+
+          {/* ✅ P1 수정: 게임 결과 화면 개선 */}
           {gameOver && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ background: 'oklch(0.10 0.03 255 / 85%)' }}>
-              <p className="text-3xl font-black text-white">{score}점</p>
-              {score >= highScore && score > 0 && <p className="text-sm font-bold" style={{ color: '#FDCB6E' }}>🏆 최고 기록!</p>}
-              <button onClick={startGame} className="px-6 py-3 rounded-2xl font-bold text-white" style={{ background: 'oklch(0.60 0.22 280)' }}>
-                다시 시작
-              </button>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4" style={{ background: 'oklch(0.10 0.03 255 / 88%)' }}>
+              <p className="text-lg font-bold text-white/60">게임 종료</p>
+              <p className="text-5xl font-black text-white" style={{ fontFamily: 'Nunito, sans-serif' }}>{score.toLocaleString()}<span className="text-2xl ml-1">점</span></p>
+              {score >= highScore && score > 0 && (
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: 'oklch(0.55 0.20 60 / 30%)', border: '1px solid oklch(0.65 0.20 60 / 50%)' }}>
+                  <Trophy size={16} style={{ color: '#FDCB6E' }} />
+                  <p className="text-sm font-bold" style={{ color: '#FDCB6E' }}>새 최고 기록!</p>
+                </div>
+              )}
+              <div className="flex gap-3 mt-2">
+                <button onClick={() => navigate('/game')} className="px-5 py-3 rounded-2xl font-bold text-white/70" style={{ background: 'oklch(1 0 0 / 10%)' }}>
+                  나가기
+                </button>
+                <button onClick={startGame} className="px-6 py-3 rounded-2xl font-bold text-white" style={{ background: 'oklch(0.60 0.22 280)', boxShadow: '0 4px 15px oklch(0.60 0.22 280 / 40%)' }}>
+                  다시 시작
+                </button>
+              </div>
             </div>
           )}
         </div>
